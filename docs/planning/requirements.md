@@ -54,6 +54,10 @@ Journey: install the future image → open management UI → consume a one-time 
 | FR-09 | Provide redacted event queries and distinct detected, matched, blocked, and rejected counters. | P1 | Fixture-based deduplication and metric reconciliation tests. |
 | FR-10 | Support certificate upload/validation and safe assignment to HTTPS sites. | P1 | Key mismatch, SAN mismatch, expiration, and upstream TLS tests. |
 | FR-11 | Create encrypted consistent backups and validate/restore them into a clean instance. | P1 | Fresh-volume restore and injected-failure recovery tests. |
+| FR-12 | Automated certificate issuance and renewal via ACME (Let's Encrypt / ZeroSSL) for HTTP-01 challenge. | P1 | Staging/production ACME flow, domain validation, and graceful reload tests. |
+| FR-13 | Layer 7 adaptive rate-limiting and burst controls per site, IP, and URI prefix. | P1 | Rate limiter tests verifying burst thresholds, 429 responses, and exemption lists. |
+| FR-14 | High-throughput asynchronous event ingestion with in-memory ring buffer to prevent SQLite contention. | P0 | Flood injection test (5,000 req/sec) proving management API responsiveness under attack. |
+| FR-15 | Multi-instance configuration export/sync for clustered horizontal scale-out behind load balancers. | P2 | Export/import bundle validation and multi-node traffic consistency tests. |
 
 Priorities and acceptance criteria are proposed and require product/security review before they become release commitments.
 
@@ -62,17 +66,19 @@ Priorities and acceptance criteria are proposed and require product/security rev
 - **Security:** least privilege, constrained configuration executor, secret redaction, bounded parsing/storage, trusted-proxy configuration, safe upstream policy.
 - **Reliability:** durable activation jobs and recovery journal; logging failures do not block public traffic; failed configuration never replaces working configuration.
 - **Operability:** separate liveness/readiness, visible stale data and collector lag, backups and documented recovery.
-- **Compatibility:** exact Nginx/module ABI and CRS versions tested in the final image.
+- **Compatibility:** exact Nginx/module ABI and CRS versions tested in the final image; pluggable support for OWASP Coraza engine.
 - **Privacy:** no request/response body retention by default; redact sensitive headers/parameters; bounded retention.
 - **Portability:** local operation without mandatory paid service; local SQLite on a supported filesystem; no shared multi-replica volume.
 
-Numeric throughput, latency, availability, and supported-host targets are **待确认** until measured on an implemented release.
+Numeric throughput, latency, availability, and supported-host targets are **TBD** until measured on an implemented release.
 
 ## 6. Open decisions
 
 - Final supervisor, base image, package strategy, supported architectures, and non-root volume ownership approach.
-- Exact CRS version and supported configuration surface.
+- Engine selection confirmation: Nginx + ModSecurity v3 vs OWASP Coraza.
+- Exact CRS version (v4 recommended) and supported configuration surface.
 - License approval and dependency compatibility.
 - Threat model, supported TLS policy, and management exposure defaults.
 - Performance targets and supported traffic/event volume.
 - Release support policy and vulnerability response contact.
+

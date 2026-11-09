@@ -8,11 +8,11 @@
 | ID | Milestone | Main outcome | Exit gate |
 | --- | --- | --- | --- |
 | M0 | Foundation and decisions | Approved scope, threat model, license decision, repository conventions, and test environment. | High-impact decisions have owners and written outcomes. |
-| M1 | WAF traffic prototype | One integrated image routes a demo site through Nginx, ModSecurity, and CRS. | Benign traffic passes; a controlled rule match is visible in DetectionOnly and blocked in Blocking; TLS/reload behavior is tested. |
+| M1 | WAF traffic prototype | One integrated image routes a demo site through Nginx, inspection engine (ModSecurity v3 or OWASP Coraza), and CRS v4. | Benign traffic passes; a controlled rule match is visible in DetectionOnly and blocked in Blocking; TLS/reload behavior is tested. |
 | M2 | Management API foundation | Go API, SQLite migrations, bootstrap, sessions, roles, and typed site/policy management. | API tests cover persistence, validation, permissions, CSRF, and upstream restrictions. |
 | M3 | Safe configuration activation | Immutable revisions, validation, serialized jobs, activation journal, readiness, rollback, and restart recovery. | Fault-injection tests prove failed apply does not leave an unverified candidate active. |
 | M4 | Dashboard and event visibility | Static dashboard with real API data, events, metrics, and health/freshness states. | Browser workflows work end-to-end; no mock metrics appear in production. |
-| M5 | Operational readiness | Certificate workflows, retention, encrypted backup/restore, non-root runtime, upgrade process, notices, and SBOM. | Fresh install/restore, disk-pressure, restart, and upgrade tests pass on the final image. |
+| M5 | Operational readiness | Automated ACME & manual certificates, retention, encrypted backup/restore, non-root runtime, upgrade process, notices, and SBOM. | Fresh install/restore, disk-pressure, restart, and upgrade tests pass on the final image. |
 | M6 | Release candidate | Security review, compatibility review, release notes, artifact integrity/signing where supported, and support process. | P0/P1 acceptance criteria are met or explicitly deferred; exact image digest and evidence are recorded. |
 
 ## Milestone details
@@ -36,7 +36,7 @@
 
 **Deliverables**
 
-- Build the exact Nginx + compatible ModSecurity connector + libModSecurity + pinned CRS combination.
+- Evaluate and benchmark the inspection engine: Nginx + compatible ModSecurity connector vs OWASP Coraza (Cgo/Wasm or Go proxy) with pinned CRS v4.
 - Route a controlled demo upstream through HTTP/HTTPS listeners.
 - Produce safe synthetic requests and demonstrate DetectionOnly and Blocking semantics.
 - Verify upstream TLS, graceful reload, startup, and container signal handling.
@@ -46,6 +46,8 @@
 - Final-image integration test results and image digest are recorded.
 - Normal requests pass; controlled detection is logged without blocking in DetectionOnly; Blocking rejects the controlled match.
 - Module/rule load failures and upstream failures are visible and do not silently bypass inspection.
+- Memory leak and stability benchmarks under 5,000 req/sec recorded.
+
 
 ### M2 — Management API foundation
 
@@ -93,14 +95,17 @@
 
 **Deliverables**
 
-- Site certificate upload/validation, retention, protected backup and restore, non-root volume permissions, and documented upgrade compatibility.
+- Automated ACME (Let's Encrypt / ZeroSSL) HTTP-01 challenge handler and auto-renewal background job.
+- Site certificate manual upload/validation, CA trust bundles, retention, protected backup and restore, non-root volume permissions, and documented upgrade compatibility.
 - Health/readiness behavior, disk-pressure handling, logs/notices, SBOM, and operator runbooks.
 
 **Exit evidence**
 
+- ACME staging/production issuance and automated renewal succeed without traffic interruption.
 - Restore to a clean volume succeeds; failed restore recovery is tested.
 - Container replacement preserves expected state; upgrade/rollback behavior is documented and tested.
 - Final image passes module ABI, routing, enforcement, and lifecycle suites.
+
 
 ### M6 — Release candidate
 
