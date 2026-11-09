@@ -4,7 +4,7 @@
 
 ## Prototype evidence
 
-The current exploratory adapter in `internal/waf` pins Coraza `v3.8.1`, CRS `v4.30.0`, and Coraza's recommended configuration `v3.8.1`. Synthetic `httptest` cases verify a benign request, a CRS-detected request in DetectionOnly, blocking of the same controlled request, and the Off mode. The production engine decision remains open; this prototype does not integrate Nginx, provide an external listener, or persist audit events.
+The current exploratory adapter in `internal/waf` pins Coraza `v3.8.1`, CRS `v4.30.0`, and Coraza's recommended configuration `v3.8.1`. Synthetic tests verify a benign request, a CRS-detected request in DetectionOnly, blocking of the same controlled request, the Off mode, and forwarding through a real local reverse-proxy hop. `go run ./cmd/waf-demo -mode blocking` starts a loopback-only HTTP demo at `127.0.0.1:18080` with a fixed in-process origin. The production engine decision remains open; this prototype does not integrate Nginx, provide TLS, support configurable upstreams, or persist audit events.
 
 An initial local benchmark of the DetectionOnly middleware handler reported approximately 1.28 ms/op, 200,526 B/op, and 2,723 allocs/op on an Intel Core i3-1115G4, Linux/amd64. This is an in-process `httptest` microbenchmark with no network, concurrency, event collector, or full application, so it is not a throughput or release-performance claim and does not establish the proposed 5,000 requests/sec target.
 

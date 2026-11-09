@@ -2,7 +2,9 @@ package waf
 
 import (
 	"net/http"
+	"net/http/httputil"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 )
@@ -81,6 +83,35 @@ func TestNewCorazaHandlerRejectsInvalidConfiguration(t *testing.T) {
 
 	if _, err := NewCorazaHandler(http.NotFoundHandler(), Mode("unknown")); err == nil {
 		t.Fatal("NewCorazaHandler with an unknown mode expected an error")
+	}
+}
+
+func TestCorazaHandlerProxiesToDemoOrigin(t *testing.T) {
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(r.URL.RequestURI()))
+	}))
+	defer origin.Close()
+
+	target, err := url.Parse(origin.URL)
+	if err != nil {
+		t.Fatalf("parse origin URL: %v", err)
+	}
+	handler, err := NewCorazaHandler(httputil.NewSingleHostReverseProxy(target), ModeBlocking)
+	if err != nil {
+		t.Fatalf("NewCorazaHandler() error = %v", err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/health?check=ok", nil)
+	request.Host = "waf-test.example"
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if got, want := recorder.Body.String(), "/health?check=ok"; got != want {
+		t.Errorf("upstream request URI = %q, want %q", got, want)
 	}
 }
 
