@@ -26,6 +26,8 @@ From the repository root, run `go test ./...`, then start the server with `go ru
 - The probe server is not a management API and has no authentication or configuration endpoints. Do not expose it beyond loopback.
 - Run `go test ./...` to exercise the local Coraza/CRS synthetic request cases; the handler package is a testable adapter, not an externally reachable proxy.
 - Run `go run ./cmd/waf-demo -mode detectionOnly` for loopback-only HTTP and HTTPS reverse-proxy demos. Use `-mode blocking` to verify the controlled local CRS test request is rejected. HTTPS uses an ephemeral self-signed certificate, so a local test client must explicitly trust it or disable verification for that isolated test only. The demo has a fixed in-process upstream and no Nginx; it is not the release proxy or a production service.
+- Build the demo image with `docker build --network=host -t ariba-shield-waf-demo:local .` on Linux, then start it with `docker compose up -d --no-build`. Build host networking is used only so the build stage can download pinned Go modules when Docker's default DNS is unavailable; it does not give the running container host networking. The Compose file publishes only host-loopback ports `18080` and `18443` and applies a non-root, read-only-rootfs runtime with a restricted temporary filesystem.
+- To stop and remove the demo container/network, run `docker compose down` from the repository root. This prototype container has no persistent product data and is not the published single-image WAF release.
 
 ## 3. Planned setup sequence
 

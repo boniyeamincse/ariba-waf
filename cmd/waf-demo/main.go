@@ -21,14 +21,15 @@ import (
 )
 
 const (
-	defaultHTTPAddress  = "127.0.0.1:18080"
-	defaultHTTPSAddress = "127.0.0.1:18443"
+	defaultHTTPAddress    = "127.0.0.1:18080"
+	defaultHTTPSAddress   = "127.0.0.1:18443"
 )
 
 func main() {
 	modeFlag := flag.String("mode", string(waf.ModeDetection), "WAF mode: off, detectionOnly, or blocking")
 	httpListenFlag := flag.String("http-listen", defaultHTTPAddress, "loopback HTTP listen address for the local demo")
 	httpsListenFlag := flag.String("https-listen", defaultHTTPSAddress, "loopback HTTPS listen address for the local demo")
+	allowRemoteListenFlag := flag.Bool("allow-remote-listen", false, "allow non-loopback listeners; use only with deliberate network isolation")
 	flag.Parse()
 
 	mode := waf.Mode(*modeFlag)
@@ -36,12 +37,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, "invalid -mode; choose off, detectionOnly, or blocking")
 		os.Exit(2)
 	}
-	httpAddress, err := validateLoopbackAddress(*httpListenFlag)
+	httpAddress, err := validateListenAddress(*httpListenFlag, *allowRemoteListenFlag)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	httpsAddress, err := validateLoopbackAddress(*httpsListenFlag)
+	httpsAddress, err := validateListenAddress(*httpsListenFlag, *allowRemoteListenFlag)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -149,14 +150,17 @@ func main() {
 	}
 }
 
-func validateLoopbackAddress(address string) (string, error) {
+func validateListenAddress(address string, allowRemote bool) (string, error) {
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", fmt.Errorf("invalid -listen address: %w", err)
+		return "", fmt.Errorf("invalid listen address: %w", err)
 	}
 	ip := net.ParseIP(host)
-	if ip == nil || !ip.IsLoopback() {
-		return "", errors.New("-listen must use a loopback IP address")
+	if ip == nil {
+		return "", errors.New("listen address must use an IP literal")
+	}
+	if !ip.IsLoopback() && !allowRemote {
+		return "", errors.New("non-loopback listen address requires -allow-remote-listen")
 	}
 	return address, nil
 }

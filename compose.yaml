@@ -1,0 +1,22 @@
+# Local M1 prototype only; not the production deployment contract.
+services:
+  waf-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ariba-shield-waf-demo:local
+    container_name: ariba-shield-waf-demo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:18443:8443"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=65532,gid=65532
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 1.0
