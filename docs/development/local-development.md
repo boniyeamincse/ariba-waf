@@ -10,7 +10,7 @@ Run the dashboard, Go API, WAF proxy, and demo upstream separately during develo
 | --- | --- | --- |
 | Next.js dashboard | `npm run dev` | `http://localhost:3000` |
 | Go health-probe skeleton | `go run ./cmd/ariba` | `http://127.0.0.1:9000/health/live` |
-| Coraza HTTP demo proxy | `go run ./cmd/waf-demo -mode detectionOnly` | `http://127.0.0.1:18080` (loopback only) |
+| Coraza HTTP/HTTPS demo proxy | `go run ./cmd/waf-demo -mode detectionOnly` | `http://127.0.0.1:18080`, `https://127.0.0.1:18443` (loopback only) |
 | Nginx + ModSecurity + CRS | Dedicated development container | `http://localhost:8080` |
 | Demo upstream | Small local test service | `http://localhost:8081` |
 | SQLite | Opened by Go API | `./dev-data/ariba.db` |
@@ -25,7 +25,7 @@ From the repository root, run `go test ./...`, then start the server with `go ru
 - `GET http://127.0.0.1:9000/health/ready` currently returns `503 NOT_READY`; storage and WAF dependencies are not wired in yet.
 - The probe server is not a management API and has no authentication or configuration endpoints. Do not expose it beyond loopback.
 - Run `go test ./...` to exercise the local Coraza/CRS synthetic request cases; the handler package is a testable adapter, not an externally reachable proxy.
-- Run `go run ./cmd/waf-demo -mode detectionOnly` for a loopback-only HTTP reverse-proxy demo. Use `-mode blocking` to verify the controlled local CRS test request is rejected. The demo has a fixed in-process upstream, no TLS, and no Nginx; it is not the release proxy or a production service.
+- Run `go run ./cmd/waf-demo -mode detectionOnly` for loopback-only HTTP and HTTPS reverse-proxy demos. Use `-mode blocking` to verify the controlled local CRS test request is rejected. HTTPS uses an ephemeral self-signed certificate, so a local test client must explicitly trust it or disable verification for that isolated test only. The demo has a fixed in-process upstream and no Nginx; it is not the release proxy or a production service.
 
 ## 3. Planned setup sequence
 

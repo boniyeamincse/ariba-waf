@@ -17,7 +17,7 @@
 
 ### Current progress
 
-M1 is **in progress**. A local Coraza + CRS v4 Go-handler prototype and loopback-only HTTP demo proxy now have synthetic tests for DetectionOnly and Blocking behavior, plus a preliminary, non-release microbenchmark. Production engine selection, Nginx/connector integration, TLS, container lifecycle tests, comparative engine benchmarking, and the 5,000 requests/sec stability target remain incomplete. See the [WAF engine notes](../development/waf-engine.md) for the scope and benchmark limitations.
+M1 is **in progress**. A local Coraza + CRS v4 Go-handler prototype and loopback-only HTTP/HTTPS demo proxy now have synthetic tests for DetectionOnly and Blocking behavior; real local-socket HTTP/HTTPS checks confirm benign traffic passes and the controlled CRS request is blocked in Blocking mode. A preliminary, non-release microbenchmark is also recorded. Production engine selection, Nginx/connector integration, production TLS/reload behavior, container lifecycle tests, comparative engine benchmarking, and the 5,000 requests/sec stability target remain incomplete. See the [WAF engine notes](../development/waf-engine.md) for prototype scope and benchmark limitations.
 
 ## Milestone details
 
