@@ -2,7 +2,8 @@
 
 > **Status:** Proposed open-source project. The current repository contains architecture and API design documents only; no release image or working product implementation is available yet.
 
-Ariba Shield WAF is planned as a browser-managed, application-layer Web Application Firewall. Its release target is one Docker image, one running container, and one persistent data volume. Nginx, ModSecurity v3, OWASP CRS, a Go management API, a static Next.js dashboard, and SQLite are proposed components. Protected applications remain external upstreams.
+Ariba Shield WAF is planned as a browser-managed, application-layer Web Application Firewall. Its release target is one Docker image, one running container, and one persistent data volume. Nginx, OWASP Coraza (or ModSecurity v3), OWASP CRS v4, a Go management API, a static Next.js dashboard, and SQLite (WAL mode) are proposed components. Protected applications remain external upstreams.
+
 
 ## Project status
 
@@ -37,12 +38,13 @@ The earlier detailed drafts remain available at [architecture specification](doc
 | Concern | Proposed choice |
 | --- | --- |
 | Public proxy | Nginx |
-| Request inspection | ModSecurity v3 with a compatible Nginx connector |
-| Baseline rules | Pinned OWASP Core Rule Set (CRS) |
+| Request inspection | OWASP Coraza (Go, memory-safe; recommended) or ModSecurity v3 with a pinned Nginx connector |
+| Baseline rules | Pinned OWASP Core Rule Set (CRS v4) |
 | Management API | Go |
 | Dashboard | Next.js static export; no Node.js runtime in the release image |
-| Persistence | SQLite and files on a mounted `/data` volume |
-| Process supervision | Small PID 1 supervisor, to be selected and tested |
+| Persistence | SQLite (WAL mode) and files on a mounted `/data` volume |
+| Process supervision | Small PID 1 supervisor (or Go supervisor entrypoint) |
+
 
 ## Contributing and security
 

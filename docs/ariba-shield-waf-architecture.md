@@ -22,14 +22,15 @@ This is an application-layer WAF. Operating-system firewall management, VPN, gen
 | Component | Decision | Purpose |
 | --- | --- | --- |
 | Reverse proxy | Nginx | Public HTTP/HTTPS listeners and upstream routing |
-| Inspection engine | ModSecurity v3 with compatible Nginx connector | Request inspection and enforcement |
-| Detection rules | Pinned OWASP Core Rule Set (CRS) | Baseline application attack detection |
-| Management API | Go | Authentication, configuration, audit, event queries, and background jobs |
+| Inspection engine | OWASP Coraza (Go, memory-safe; recommended) or ModSecurity v3 with pinned Nginx connector | Request inspection, anomaly scoring, and enforcement |
+| Detection rules | Pinned OWASP Core Rule Set (CRS v4) | Baseline application attack detection with lower false positives |
+| Management API | Go | Authentication, configuration, ACME management, audit, event queries, and background jobs |
 | Dashboard | Next.js static export | Browser interface served by management listener |
-| Database | Embedded SQLite | Users, policies, site definitions, revisions, and event indexes |
-| Process management | s6-overlay or equivalent small supervisor, selected during prototype | PID 1, process lifecycle, and signal handling |
+| Database | Embedded SQLite (WAL mode) | Users, policies, site definitions, revisions, and aggregated hourly metrics |
+| Process management | s6-overlay or Go supervisor entrypoint | PID 1, process lifecycle, and signal handling |
 | Persistence | Docker volume mounted at `/data` | Database, certificates, logs, and active configuration |
 | Distribution | Versioned Docker image | Reproducible installation and upgrades |
+
 
 Next.js is a build-time dependency. The final image serves exported HTML/CSS/JavaScript; Node.js is not required at runtime. Authentication and all dynamic operations belong to Go. Do not depend on Next.js server actions, server-side sessions, or runtime API routes.
 
