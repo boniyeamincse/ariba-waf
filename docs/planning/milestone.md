@@ -15,6 +15,10 @@
 | M5 | Operational readiness | Automated ACME & manual certificates, retention, encrypted backup/restore, non-root runtime, upgrade process, notices, and SBOM. | Fresh install/restore, disk-pressure, restart, and upgrade tests pass on the final image. |
 | M6 | Release candidate | Security review, compatibility review, release notes, artifact integrity/signing where supported, and support process. | P0/P1 acceptance criteria are met or explicitly deferred; exact image digest and evidence are recorded. |
 
+### Current progress
+
+M1 is **in progress**. A local Coraza + CRS v4 Go-handler prototype now has synthetic tests for DetectionOnly and Blocking behavior and a preliminary, non-release microbenchmark. Production engine selection, Nginx/connector integration, TLS, container lifecycle tests, comparative engine benchmarking, and the 5,000 requests/sec stability target remain incomplete. See the [WAF engine notes](../development/waf-engine.md) for the scope and benchmark limitations.
+
 ## Milestone details
 
 ### M0 — Foundation and decisions

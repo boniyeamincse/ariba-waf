@@ -9,7 +9,7 @@ build/
 *.dylib
 *.test
 *.out
-ariba
+/ariba
 
 # Node / Frontend
 node_modules/

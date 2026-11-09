@@ -1,10 +1,12 @@
 # Ariba Shield WAF — Management API
 
-**Status:** Proposed development contract; routes are not implemented or runtime-verified.  
+**Status:** Initial health endpoints are implemented with tests; all management routes remain proposed and unimplemented.
 **API version:** `v1`  
 **Implementation target:** Go API, embedded SQLite, one-container release.
 
 This page is the API entry point in the development documentation. The detailed draft contract, including example payloads, validation limits, role matrix, error codes, events, and backup/restore behavior, is maintained in [the API specification](../api.md). Update both documents when the API contract changes; once the documentation reorganization is complete, consolidate the detailed specification here and remove the temporary legacy location.
+
+Implemented so far: internal `GET /health/live` and `GET /health/ready` handlers. The service binds to `127.0.0.1:9000`; readiness currently returns `503 NOT_READY` because persistence and the WAF activation dependencies are not configured. This is intentionally not a production-ready API.
 
 ## 1. Purpose and boundaries
 

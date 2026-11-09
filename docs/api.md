@@ -4,7 +4,7 @@
 **Date:** 9 November 2026  
 **Implementation:** Go, SQLite, Nginx + ModSecurity v3 + OWASP CRS  
 **Architecture:** `ariba-shield-waf-architecture.md`  
-**Status:** Proposed contract for development. These endpoints are not implemented or deployed yet.
+**Status:** Proposed contract for development. Only the internal liveness/readiness probes are implemented; management endpoints are not deployed.
 
 ## 1. Scope and base URLs
 
@@ -395,8 +395,8 @@ Timeseries accepts `interval = 1m | 5m | 1h | 1d`; cap at 1,000 buckets. Audit e
 | GET | `/system/health` | Any role | Components, readiness, storage and collector lag |
 | GET / PATCH | `/settings/proxy` | Admin | Upstream allowed CIDRs and trusted proxy CIDRs |
 | GET / PATCH | `/settings/retention` | Admin | Event, access-log, audit and backup retention |
-| GET | `/health/live` | Internal only | Process responsive; no sensitive details |
-| GET | `/health/ready` | Internal only | `200` ready or `503` unavailable |
+| GET | `/health/live` | Internal only | Implemented: process responsive; no sensitive details |
+| GET | `/health/ready` | Internal only | Implemented: currently `503 NOT_READY` until dependencies are configured |
 
 Internal probes are bound to loopback and excluded from management/public proxy routes. User-facing detailed health requires a session. Liveness is independent of current proxy readiness.
 

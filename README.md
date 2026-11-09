@@ -1,13 +1,13 @@
 # Ariba Shield WAF
 
-> **Status:** Proposed open-source project. The current repository contains architecture and API design documents only; no release image or working product implementation is available yet.
+> **Status:** Early development. Go health probes and a Coraza/CRS v4 handler prototype with tests exist; the integrated proxy, management features, and release image are not implemented or available yet.
 
 Ariba Shield WAF is planned as a browser-managed, application-layer Web Application Firewall. Its release target is one Docker image, one running container, and one persistent data volume. Nginx, OWASP Coraza (or ModSecurity v3), OWASP CRS v4, a Go management API, a static Next.js dashboard, and SQLite (WAL mode) are proposed components. Protected applications remain external upstreams.
 
 
 ## Project status
 
-- **Current phase:** design and documentation.
+- **Current phase:** M1 WAF prototype; the Coraza adapter is exploratory and the production engine/integration decision remains open.
 - **Release image:** not published.
 - **Installation commands:** target examples only; registry and version are not selected.
 - **Security and performance claims:** not yet validated by an implementation.

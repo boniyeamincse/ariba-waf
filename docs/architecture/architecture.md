@@ -1,6 +1,6 @@
 # System Architecture
 
-**Status:** Proposed architecture baseline. No product implementation is currently present in this repository.  
+**Status:** Proposed architecture baseline. The repository has an initial Go health-probe skeleton and a Coraza/CRS prototype; integrated WAF and management functionality are not implemented.
 **Canonical detailed design:** [Ariba Shield WAF architecture specification](../ariba-shield-waf-architecture.md).
 
 ## 1. Design goals

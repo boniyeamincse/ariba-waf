@@ -15,7 +15,7 @@ The system must let an administrator register an upstream, observe detections sa
 ### In scope for the first release proposal
 
 - One image, one running container, and one persistent `/data` volume.
-- Nginx with ModSecurity v3 and a pinned OWASP CRS release.
+- Nginx with the inspection engine selected by the M1 prototype (ModSecurity v3 or Coraza) and a pinned OWASP CRS v4 release.
 - Go management API, static Next.js dashboard, and embedded SQLite.
 - One-time bootstrap, account/session management, Admin/Operator/Viewer permissions.
 - Website/upstream definitions, certificates, structured policies and site-scoped exclusions.
