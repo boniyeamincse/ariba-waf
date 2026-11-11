@@ -1,6 +1,6 @@
 # Configuration Lifecycle
 
-**Status:** Proposed state machine and safety contract; no activation implementation exists yet.
+**Status:** Desired website/policy state, proxy settings, transactional generation tracking, and read-only configuration status are implemented. The activation state machine below remains proposed; no activation implementation exists yet.
 
 ## 1. State model
 

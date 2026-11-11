@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in Ariba Shield WAF. The project is currently in the design/documentation phase. The development workflow below is proposed and will be updated when source code, CI, and release processes exist.
+Ariba Shield WAF is in early implementation. Go source includes a Coraza/CRS demo and a SQLite-backed management API foundation. The integrated product and release process remain incomplete.
 
 ## Before contributing
 
@@ -28,4 +28,4 @@ Thank you for your interest in Ariba Shield WAF. The project is currently in the
 
 ## Current limitations
 
-There is no established code layout, build command, CI pipeline, issue template, or release branch policy yet. Do not invent or rely on repository checks until they are added and documented. See [the roadmap](docs/planning/roadmap.md) for proposed next steps.
+Run `go test ./...` and `go vet ./...` from the repository root. Source lives under `cmd/` and `internal/`; see [local development](docs/development/local-development.md) for run commands. CI, issue templates, and a release branch policy are not established yet. See [the roadmap](docs/planning/roadmap.md) for proposed next steps.

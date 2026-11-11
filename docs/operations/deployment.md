@@ -1,6 +1,15 @@
 # Deployment Plan
 
-**Status:** Target deployment design only. There is no published image or supported deployment release.
+**Status:** Target deployment design only. There is no supported deployment release.
+
+A separate local management API image and persistent Compose service are available for development; see [the management container guide](management-container.md). It does not include the integrated WAF/dashboard described below.
+
+Unsigned development preview images are published to Docker Hub for convenience and are not a supported release:
+
+- `boniyeamin/ariba-shield-waf-engine:latest` — isolated Coraza/CRS demo proxy.
+- `boniyeamin/ariba-shield-control-api:latest` — local management API foundation.
+
+Do not treat these tags as a production artifact, a compatibility matrix, or a security-backed release. The real deployment contract below remains unimplemented.
 
 ## 1. Deployment contract
 

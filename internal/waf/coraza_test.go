@@ -2,8 +2,8 @@ package waf
 
 import (
 	"net/http"
-	"net/http/httputil"
 	"net/http/httptest"
+	"net/http/httputil"
 	"net/url"
 	"sync/atomic"
 	"testing"

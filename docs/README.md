@@ -30,8 +30,15 @@ This documentation describes a proposed product and its development plan. Unless
 ## Operations
 
 - [Deployment](operations/deployment.md)
+- [Local management API container](operations/management-container.md)
 - [Backup and restore](operations/backup-restore.md)
 - [Troubleshooting](operations/troubleshooting.md)
+
+## Repository policies
+
+- [Changelog](../CHANGELOG.md)
+- [Contributing](../CONTRIBUTING.md)
+- [Security policy and vulnerability reporting](../SECURITY.md)
 
 ## Legacy detailed drafts
 

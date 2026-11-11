@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	defaultHTTPAddress    = "127.0.0.1:18080"
-	defaultHTTPSAddress   = "127.0.0.1:18443"
+	defaultHTTPAddress  = "127.0.0.1:18080"
+	defaultHTTPSAddress = "127.0.0.1:18443"
 )
 
 func main() {

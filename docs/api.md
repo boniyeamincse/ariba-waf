@@ -4,7 +4,7 @@
 **Date:** 9 November 2026  
 **Implementation:** Go, SQLite, Nginx + ModSecurity v3 + OWASP CRS  
 **Architecture:** `ariba-shield-waf-architecture.md`  
-**Status:** Proposed contract for development. Only the internal liveness/readiness probes are implemented; management endpoints are not deployed.
+**Status:** Proposed full contract with a partial implementation. Accounts/sessions/roles, Admin user CRUD, desired website/policy CRUD, proxy CIDR settings, and configuration status are implemented with SQLite; see [the implemented foundation, current limitations, and run instructions](development/api.md). Certificate/trust-bundle management, scoped exclusions, activation, and operational endpoints remain unimplemented. There is no supported deployment release.
 
 ## 1. Scope and base URLs
 
@@ -108,7 +108,7 @@ Production cookie:
 Set-Cookie: __Host-ariba_session=<opaque>; Path=/; Secure; HttpOnly; SameSite=Strict
 ```
 
-Session defaults: 30-minute idle expiry, 12-hour absolute expiry. Rotate the session on login, reauthentication and privilege changes. Local HTTP development uses a separate development-only cookie name without `Secure`; refuse this mode on a non-loopback listener.
+Session defaults: 30-minute idle expiry, 12-hour absolute expiry. Rotate the session on login, reauthentication and privilege changes. Local HTTP development uses a separate development-only cookie name without `Secure` and requires a loopback browser origin. Host-run commands reject non-loopback listeners unless explicitly opted in. The local Docker prototype uses that explicit opt-in with a host-loopback-only published port; see [its isolation contract](operations/management-container.md).
 
 Before login or enrollment, `GET /auth/csrf` issues a short-lived pre-authentication binding cookie and returns a CSRF token. After login, obtain a new session-bound token. Every unsafe browser request, including login, enrollment, logout and multipart uploads, requires `X-CSRF-Token` and an exact allowed `Origin`. No GET endpoint changes state. Disable credentialed wildcard CORS.
 
@@ -123,6 +123,7 @@ Limit login to 5 failed attempts per account and client IP per 15 minutes, with 
 | Upload/delete certificates | Yes | No | No |
 | Manage users, proxy destination allowlists, retention | Yes | No | No |
 | Read management audit logs | Yes | No | No |
+| Manage notification sinks (`settings/notifications`) | Yes | No | No |
 | Backup, download backup, restore | Yes | No | No |
 
 Every endpoint requires authentication unless marked Public or Internal. Enforce roles on the server. No private-key download endpoint exists; backups are a separately protected exception.
@@ -135,11 +136,15 @@ Every endpoint requires authentication unless marked Public or Internal. Enforce
 | GET | `/auth/csrf` | Public/session | Return binding-specific `{ "csrfToken": "..." }` |
 | POST | `/setup/enroll` | Bootstrap token | Atomically consume token and create first Admin; `201` |
 | POST | `/auth/login` | Public | Authenticate, set session cookie and return user; `200` |
+| POST | `/auth/refresh` | Any role | Rotate current session and return refreshed session TTL; `200` |
 | GET | `/auth/me` | Any role | Current user and session expiry |
+| GET | `/auth/permissions` | Any role | Return effective role and permissions list |
+| GET | `/auth/activity` | Any role | Return bounded recent account activity records |
 | POST | `/auth/reauthenticate` | Any role | Verify current password, rotate session, grant 5-minute recent-auth state |
 | POST | `/auth/logout` | Any role | Revoke current session and clear cookie; `204` |
 | POST | `/auth/password` | Any role | Verify current password, set new password and revoke all sessions; `204` |
 | GET | `/auth/sessions` | Any role | List own redacted sessions |
+| POST | `/auth/sessions/revoke-all` | Any role | Revoke all sessions for current account; `204` |
 | DELETE | `/auth/sessions/{id}` | Session owner | Revoke an owned session; `204`; no ETag required |
 
 Enrollment request:
@@ -155,9 +160,13 @@ Enrollment request:
 
 Generate enrollment tokens only through a local CLI, expire them after 10 minutes, store their hash and disable enrollment after setup. Enrollment creates no session; proceed to login. Invalid and expired tokens share one generic error. Concurrent enrollment must create at most one initial account.
 
-Login and reauthentication bodies use `username` + `password`, and `password`, respectively. Password change uses `currentPassword` + `newPassword`.
+Login and reauthentication bodies use `username` + `password`, and `password`, respectively. Password change uses `currentPassword` + `newPassword`. Session refresh and revoke-all require authenticated cookies and CSRF/Origin checks, and do not require additional JSON fields.
 
-User management (Admin only): `GET /users`, `POST /users`, `GET /users/{id}`, `PATCH /users/{id}`, `DELETE /users/{id}`. Create accepts `username`, `displayName`, `role`, `password`. Patch accepts `displayName`, `role`, `enabled`; credentials are not ordinary user fields. Roles are `admin`, `operator`, `viewer`. Usernames are case-insensitively unique, 3–64 ASCII letters/digits/`._-`. Prevent disabling, deleting or demoting the last enabled Admin. Role changes or disable/delete revoke the target's sessions immediately. No remote password-reset endpoint is included in v1; document local recovery separately.
+Deferred auth features in this phase: forgot-password/reset-password email token flows, email verification endpoints, and 2FA enrollment/verification/recovery endpoints.
+
+User management (Admin only): `GET /users`, `POST /users`, `GET /users/{id}`, `PATCH /users/{id}`, `DELETE /users/{id}`, and `POST /users/{id}/reset-password`. Create accepts `username`, `displayName`, `role`, `password`. Patch accepts `displayName`, `role`, `enabled`; credentials are not ordinary user fields. Roles are `admin`, `operator`, `viewer`. Usernames are case-insensitively unique, 3–64 ASCII letters/digits/`._-`. Prevent disabling, deleting or demoting the last enabled Admin. Role changes or disable/delete revoke the target's sessions immediately.
+
+Admin-assisted password reset (`POST /users/{id}/reset-password`, proposed): requires recent Admin reauthentication, `If-Match`, and a 12–128 character temporary `newPassword` (or server-generated one-time reset token). It revokes all active sessions of the target account, marks `mustChangePassword: true` so the target account must complete `POST /auth/password` on next login before accessing management endpoints, and records an audit entry without logging the credential. Document local CLI Admin recovery separately.
 
 ## 5. Websites
 
@@ -168,6 +177,7 @@ User management (Admin only): `GET /users`, `POST /users`, `GET /users/{id}`, `P
 | POST | `/websites` | Admin/Operator | Create desired definition; `201` |
 | PATCH | `/websites/{id}` | Admin/Operator | Update desired definition with `If-Match` |
 | DELETE | `/websites/{id}` | Admin/Operator | Delete desired definition with `If-Match`; `204` |
+| POST | `/websites/{id}/upstream-check` | Admin/Operator | SSRF-validated DNS/TCP/TLS reachability check (proposed) |
 
 Create example:
 
@@ -201,10 +211,11 @@ Rules:
 - Validate destinations against Admin-controlled allowed CIDRs. Resolve hostnames and validate every destination at connection/re-resolution time; reject forbidden addresses and mixed allowed/forbidden answers. Deny metadata, management and unintended loopback destinations. Avoid validation-to-connect DNS gaps.
 - Bound connect timeout to 1–30 seconds and read timeout to 1–300 seconds.
 - `certificateId: null` is allowed only after HTTPS is disabled; `policyId` cannot be null.
+- `POST /websites/{id}/upstream-check` (proposed): rate-limited dry-run check against a saved website's upstreams using the same SSRF validator and a bounded 3-second deadline per upstream. Performs DNS resolution + TCP connect (and TLS handshake when `scheme = https`), never sends arbitrary HTTP request payloads or returns internal resolver/socket details, and reports sanitized status (`reachable | denied | timeout | tlsError`) and latency.
 
 Writes change desired state only. A disabled/deleted desired website can still be serving in the applied revision until a new revision succeeds. Responses must show `desiredGeneration`, `appliedRevisionId` (nullable) and `pendingChanges`. Determine active settings from revision details, not from the current editable row.
 
-## 6. Policies and scoped exclusions
+## 6. Policies, scoped exclusions and IP access rules
 
 Policies: `GET /policies`, `POST /policies`, `GET /policies/{id}`, `PATCH /policies/{id}`, `DELETE /policies/{id}`. Read: all roles. Write: Admin/Operator. Updates/deletes require `If-Match`; referenced policies cannot be deleted.
 
@@ -260,18 +271,27 @@ Allow `pathMatch = exact | prefix` with documented path-boundary matching and `t
 
 Optional expiry is UTC. The backend schedules and applies a new revision to remove an expired applied exclusion; the timestamp alone does not change Nginx. Expose `expiryRemovalStatus = pending | applied | failed` and alert on failed removal. Deleted/changed exclusions also require apply.
 
+Static site IP access rules (proposed, distinct from `/settings/proxy` upstream egress allowlists):
+
+| Method | Path | Access |
+| --- | --- | --- |
+| GET / POST | `/websites/{siteId}/ip-rules` | Read all; create Admin/Operator |
+| GET / PATCH / DELETE | `/websites/{siteId}/ip-rules/{id}` | Read all; mutate Admin/Operator (`If-Match`) |
+
+Fields: `mode` (`allow | deny`), canonical IPv4/IPv6 `cidr` (masked on save, bounded per site), `reason` (10–1,000 chars), `enabled` (`bool`), and optional UTC `expiresAt`. Evaluated against the client IP derived from configured trusted proxies. Mutations increment `desiredGeneration` and require configuration apply.
+
 ## 7. Certificates and trust bundles
 
 | Method | Path | Access | Behavior |
 | --- | --- | --- | --- |
-| GET | `/certificates` | Any role | Metadata only |
-| GET | `/certificates/{id}` | Any role | Subject, SANs, issuer, fingerprint and validity |
+| GET | `/certificates` | Any role | Metadata only; supports optional `?expiringWithinDays=1..365` |
+| GET | `/certificates/{id}` | Any role | Subject, SANs, issuer, fingerprint, validity and `daysUntilExpiry` |
 | POST | `/certificates` | Admin | Upload certificate chain/key; `201` |
 | DELETE | `/certificates/{id}` | Admin | `If-Match`; reject if referenced by desired or active config |
 | GET / POST | `/trust-bundles` | Read all; create Admin | Metadata / upload CA bundle |
 | DELETE | `/trust-bundles/{id}` | Admin | `If-Match`; reject referenced bundles |
 
-Certificate upload uses multipart fields `name`, `certificate` (PEM chain), `privateKey` (unencrypted PEM). Validate parsing, key match, validity, supported key algorithms and chain structure; site activation checks SAN coverage. Never log multipart content. Store keys using generated internal paths with restricted permissions. API-assigned IDs are the only file references.
+Certificate upload uses multipart fields `name`, `certificate` (PEM chain), `privateKey` (unencrypted PEM). Validate parsing, key match, validity, supported key algorithms and chain structure; site activation checks SAN coverage. Never log multipart content. Store keys using generated internal paths with restricted permissions. API-assigned IDs are the only file references. Include `expiryState` (`valid | expiringSoon | expired`) and `daysUntilExpiry` in metadata reads to support expiry alerts without revealing private keys.
 
 CA upload uses multipart `name`, `bundle`; only public CA certificates, no private keys. `upstreamTls.trustSource = bundle` requires `trustBundleId`.
 
@@ -282,6 +302,7 @@ Rotation creates a new certificate ID, updates site references and applies a new
 | Method | Path | Access | Behavior |
 | --- | --- | --- | --- |
 | GET | `/configuration/status` | Any role | Desired generation, applied revision, pending changes, current job |
+| GET | `/configuration/diff` | Any role | Redacted typed diff between `appliedRevisionId` and current `desiredGeneration` (or `?fromRevisionId=&toRevisionId=`) (proposed) |
 | GET | `/configuration/revisions` | Any role | Immutable snapshots and validation/activation metadata |
 | GET | `/configuration/revisions/{id}` | Any role | Redacted typed snapshot and checksum; no keys/raw secrets |
 | POST | `/configuration/revisions` | Admin/Operator | Snapshot desired state using `expectedDesiredGeneration`; `201` |
@@ -290,7 +311,7 @@ Rotation creates a new certificate ID, updates site references and applies a new
 | POST | `/configuration/rollback` | Admin/Operator | Queue activation of a retained known-good snapshot; `202` |
 | GET | `/jobs/{id}` | Authorized role | Poll job progress and sanitized result |
 
-Create revision: `{ "expectedDesiredGeneration": 12, "message": "Add ERP demo" }`. Atomically reject changed generations with `DRAFT_STALE`. Snapshots are immutable; validation and activation history are separate metadata.
+Create revision: `{ "expectedDesiredGeneration": 12, "message": "Add ERP demo" }`. Atomically reject changed generations with `DRAFT_STALE`. Snapshots are immutable; validation and activation history are separate metadata. `GET /configuration/diff` omits secrets, keys and credential hashes while returning changed websites, policies, exclusions, IP rules, certificate IDs and proxy settings for pre-apply review.
 
 Apply request:
 
@@ -342,9 +363,11 @@ Job status: `queued | running | succeeded | failed | interrupted`. Recovery: `no
 | --- | --- | --- | --- |
 | GET | `/events` | Any role | Redacted transaction summaries |
 | GET | `/events/{id}` | Any role | Redacted transaction with matched rules |
+| GET | `/events/export` | Admin/Operator | Bounded redacted JSONL/CSV export (`from`/`to` required, max 10,000 rows) (proposed) |
 | GET | `/metrics/overview` | Any role | Windowed counters and freshness |
 | GET | `/metrics/timeseries` | Any role | Bounded chart buckets |
 | GET | `/audit-logs` | Admin | Management changes and outcomes |
+| GET | `/audit-logs/export` | Admin | Bounded redacted audit JSONL/CSV export (`from`/`to` required, max 10,000 rows) (proposed) |
 
 Event filters: `from`, `to`, `siteId`, `action`, `ruleId`, `clientIp`, `limit`, `cursor`. Use exact filters in v1; no arbitrary SQL or regex queries. `action = allowed | blocked | rejected`; `blocked` means a confirmed WAF enforcement response, `rejected` means a separately classified transport/limit rejection. Unknown outcomes remain explicitly `unknown` in records rather than being inferred from rule matches.
 
@@ -373,6 +396,8 @@ Event filters: `from`, `to`, `siteId`, `action`, `ruleId`, `clientIp`, `limit`, 
 
 This is an illustrative record, not evidence of a real attack. Return normalized path without query-string secrets, redacted rule messages, and no raw body, authorization header, cookies or matched secret values. A security-event listing is not a complete access log.
 
+Export endpoints (`GET /events/export`, `GET /audit-logs/export`, proposed): accept `format=jsonl|csv` alongside bounded `from`/`to` windows (maximum 31 days, capped at 10,000 records per request), stream with `Cache-Control: no-store` and `Content-Disposition: attachment`, neutralize spreadsheet formula prefixes in CSV cells (`=`, `+`, `-`, `@`), and omit unredacted request bodies, keys or credentials.
+
 Metric definitions:
 
 | Metric | Definition |
@@ -395,6 +420,9 @@ Timeseries accepts `interval = 1m | 5m | 1h | 1d`; cap at 1,000 buckets. Audit e
 | GET | `/system/health` | Any role | Components, readiness, storage and collector lag |
 | GET / PATCH | `/settings/proxy` | Admin | Upstream allowed CIDRs and trusted proxy CIDRs |
 | GET / PATCH | `/settings/retention` | Admin | Event, access-log, audit and backup retention |
+| GET / POST | `/settings/notifications` | Admin | List/create webhook or syslog alert sinks (proposed) |
+| PATCH / DELETE | `/settings/notifications/{id}` | Admin | Update/delete alert sink with `If-Match` (proposed) |
+| POST | `/settings/notifications/{id}/test` | Admin | Send sanitized test alert to configured sink (proposed) |
 | GET | `/health/live` | Internal only | Implemented: process responsive; no sensitive details |
 | GET | `/health/ready` | Internal only | Implemented: currently `503 NOT_READY` until dependencies are configured |
 
@@ -403,6 +431,8 @@ Internal probes are bound to loopback and excluded from management/public proxy 
 Proxy settings are revisioned traffic configuration and require apply. Reject changes that invalidate referenced upstreams. Derive client IP only from configured trusted proxy chains; never accept a visitor-supplied header unconditionally.
 
 Retention fields: `securityEventDays` (1–365, default 30), `accessLogDays` (1–90, default 7), `managementAuditDays` (30–730, default 180), `backupCount` (1–30, default 5), `maxLogDiskBytes` (100 MiB–100 GiB, default 1 GiB). Actual capacity remains bounded by available volume space. Validate free-space headroom. Changes affect cleanup workers after successful PATCH, not Nginx apply; return `effectiveAt`. Never silently remove all audit history on disk pressure.
+
+Notification sinks (`/settings/notifications`, proposed): support `webhook` (HTTPS) and `syslog` destinations for certificate expiry warnings, activation recovery failures, and critical block spikes. Validate destinations against Admin network/SSRF rules, treat bearer/HMAC signing secrets as write-only (never returned on `GET`), bound delivery timeouts/retries, and redact payloads.
 
 ## 11. Backup and restore
 
@@ -464,4 +494,4 @@ Keep local database files, certificates, keys, cookies, bootstrap tokens and tes
 
 ## 14. Deferred endpoints
 
-ACME automation, GeoIP policies, IP reputation subscriptions, arbitrary custom ModSecurity rules, remote upgrades, API bearer tokens, multi-instance coordination and management TLS replacement through the browser are outside this v1 contract. Add each through an explicit versioned specification rather than placeholder endpoints that report success.
+ACME automation, GeoIP policies, dynamic external IP reputation subscriptions (distinct from static per-site CIDR rules in §6), arbitrary custom ModSecurity rules, remote upgrades, API bearer tokens, multi-instance coordination and management TLS replacement through the browser are outside this v1 contract. Add each through an explicit versioned specification rather than placeholder endpoints that report success.

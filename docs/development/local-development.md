@@ -1,6 +1,6 @@
 # Local Development
 
-**Status:** Partial. The Go health-probe service and tests exist; dashboard, WAF proxy, database, and product API are not implemented.
+**Status:** Partial. SQLite-backed account and desired website/policy APIs, health probes, the Coraza demo proxy, and an initial Next.js dashboard prototype exist; activation and integrated release runtime remain unimplemented.
 
 ## 1. Development topology
 
@@ -8,25 +8,35 @@ Run the dashboard, Go API, WAF proxy, and demo upstream separately during develo
 
 | Component | Intended process | Example address/data |
 | --- | --- | --- |
-| Next.js dashboard | `npm run dev` | `http://localhost:3000` |
-| Go health-probe skeleton | `go run ./cmd/ariba` | `http://127.0.0.1:9000/health/live` |
+| Next.js dashboard | `cd frontend && npm run dev` | `http://localhost:3000` |
+| Go management foundation | `go run ./cmd/ariba -dev-http -origin http://localhost:3000` | `http://127.0.0.1:9000/api/v1` |
 | Coraza HTTP/HTTPS demo proxy | `go run ./cmd/waf-demo -mode detectionOnly` | `http://127.0.0.1:18080`, `https://127.0.0.1:18443` (loopback only) |
 | Nginx + ModSecurity + CRS | Dedicated development container | `http://localhost:8080` |
 | Demo upstream | Small local test service | `http://localhost:8081` |
-| SQLite | Opened by Go API | `./dev-data/ariba.db` |
+| SQLite management database | Opened by Go API | `./dev-data/ariba.db` |
 
-The Go health command and Coraza handler package exist. There is not yet a runnable WAF proxy command, frontend, Nginx container, or SQLite integration; those processes, ports, and the database path are planning examples until their source/configuration is added.
+The Go management command, Coraza demo, and frontend prototype are runnable. The Nginx development container and standalone demo upstream are still planning examples. The Coraza demo uses its own fixed in-process upstream; it does not consume management configuration.
 
-## 2. Run the current Go skeleton
+For the management API in Docker, see [the local container guide](../operations/management-container.md). Build with `docker build --network=host --pull -f Dockerfile.api -t ariba-shield-management-api:local .`, then run `docker compose up -d --no-build --wait management-api`. Build host networking is used only for module downloads when Docker's default DNS cannot resolve `proxy.golang.org`; omit it where build DNS works. The default endpoint is `http://127.0.0.1:19000` with a persistent SQLite volume; it is separate from the WAF demo and is not the final release container. An unsigned development preview is also published as `boniyeamin/ariba-shield-control-api:latest`.
 
-From the repository root, run `go test ./...`, then start the server with `go run ./cmd/ariba`. It binds only to `127.0.0.1:9000`.
+## 2. Run the current Go services
+
+To run the frontend prototype:
+
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
+4. Open `http://localhost:3000`, then use `/setup` and `/dashboard`.
+
+Use the Go version declared in `go.mod`. From the repository root, run `go test ./...`, generate a setup token with `go run ./cmd/ariba -enrollment-token`, then start the server with `go run ./cmd/ariba -dev-http -origin http://localhost:3000`. It binds only to `127.0.0.1:9000`. The database defaults to `./dev-data/ariba.db`; override it with `-db <private-directory>/ariba.db` consistently for token creation and the server. Token creation exits without starting a listener and is refused after setup. A newly generated token replaces the previous unused token and expires in 10 minutes.
 
 - `GET http://127.0.0.1:9000/health/live` returns `200` while the process is responsive.
-- `GET http://127.0.0.1:9000/health/ready` currently returns `503 NOT_READY`; storage and WAF dependencies are not wired in yet.
-- The probe server is not a management API and has no authentication or configuration endpoints. Do not expose it beyond loopback.
-- Run `go test ./...` to exercise the local Coraza/CRS synthetic request cases; the handler package is a testable adapter, not an externally reachable proxy.
+- `GET http://127.0.0.1:9000/health/ready` returns `503 NOT_READY` until WAF activation is connected, even when the account database is healthy.
+- The management API implements accounts/sessions/roles, desired website/policy CRUD, Admin proxy CIDR settings, configuration status, and baseline read routes for events, metrics, and audit logs. Event ingestion is pending, so `/events` returns an empty list and `/metrics/overview` reports unavailable freshness. Activation is not implemented. Site listeners currently support HTTP only; certificates/trust bundles are pending. See [management API](api.md) for routes, setup, and a desired-site example.
+- Development mode uses a separate insecure cookie name and requires a loopback browser origin. Without `-dev-http`, the API requires an HTTPS origin and issues Secure `__Host-` cookies for the future management TLS gateway. Do not expose the internal API beyond loopback.
+- Run `go test ./...` to exercise the management foundation and local Coraza/CRS synthetic request cases.
 - Run `go run ./cmd/waf-demo -mode detectionOnly` for loopback-only HTTP and HTTPS reverse-proxy demos. Use `-mode blocking` to verify the controlled local CRS test request is rejected. HTTPS uses an ephemeral self-signed certificate, so a local test client must explicitly trust it or disable verification for that isolated test only. The demo has a fixed in-process upstream and no Nginx; it is not the release proxy or a production service.
-- Build the demo image with `docker build --network=host -t ariba-shield-waf-demo:local .` on Linux, then start it with `docker compose up -d --no-build`. Build host networking is used only so the build stage can download pinned Go modules when Docker's default DNS is unavailable; it does not give the running container host networking. The Compose file publishes only host-loopback ports `18080` and `18443` and applies a non-root, read-only-rootfs runtime with a restricted temporary filesystem.
+- Build the demo image with `docker build --network=host -t ariba-shield-waf-demo:local .` on Linux, then start it with `docker compose up -d --no-build`. Build host networking is used only so the build stage can download pinned Go modules when Docker's default DNS is unavailable; it does not give the running container host networking. The Compose file publishes only host-loopback ports `18080` and `18443` and applies a non-root, read-only-rootfs runtime with a restricted temporary filesystem. The same prototype is published as `boniyeamin/ariba-shield-waf-engine:latest`; it is not the integrated release image.
 - To stop and remove the demo container/network, run `docker compose down` from the repository root. This prototype container has no persistent product data and is not the published single-image WAF release.
 
 ## 3. Planned setup sequence

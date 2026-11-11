@@ -1,0 +1,21 @@
+# Local management foundation only; separate from the Coraza demo/release image.
+FROM golang:1.26.7 AS build
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/ariba ./cmd/ariba
+COPY internal/api ./internal/api
+COPY internal/management ./internal/management
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/ariba ./cmd/ariba
+RUN mkdir -p /out/data/db && chmod 0700 /out/data /out/data/db
+
+FROM gcr.io/distroless/static-debian13:nonroot
+COPY --from=build /out/ariba /ariba
+# A new named volume receives this non-root-owned directory on first mount.
+COPY --from=build --chown=65532:65532 /out/data /data
+USER 65532:65532
+EXPOSE 9000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD ["/ariba", "-healthcheck"]
+ENTRYPOINT ["/ariba"]
+CMD ["-db", "/data/db/ariba.db", "-listen", "0.0.0.0:9000", "-allow-remote-listen"]

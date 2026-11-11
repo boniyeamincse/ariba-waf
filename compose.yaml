@@ -1,4 +1,4 @@
-# Local M1 prototype only; not the production deployment contract.
+# Local prototypes only; the management API and WAF demo are independent.
 services:
   waf-demo:
     build:
@@ -20,3 +20,45 @@ services:
     pids_limit: 64
     mem_limit: 512m
     cpus: 1.0
+
+  management-api:
+    profiles: [management]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: ariba-shield-management-api:local
+    restart: unless-stopped
+    command:
+      - -db
+      - /data/db/ariba.db
+      - -listen
+      - 0.0.0.0:9000
+      - -allow-remote-listen
+      - -dev-http
+      - -origin
+      - http://127.0.0.1:${ARIBA_API_PORT:-19000}
+    ports:
+      - "127.0.0.1:${ARIBA_API_PORT:-19000}:9000"
+    volumes:
+      - management-data:/data
+    networks: [management]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=65532,gid=65532
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 1.0
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  management-data:
+
+networks:
+  management:

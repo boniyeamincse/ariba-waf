@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ariba Shield · Management API</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #10171f; color: #e6edf3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 48px 24px; }
+    main { max-width: 820px; margin: auto; }
+    header { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+    .brand { font-weight: 750; letter-spacing: -.03em; font-size: 24px; }
+    .badge { color: #93e3ba; border: 1px solid #2d634d; border-radius: 30px; padding: 7px 13px; font-size: 13px; }
+    h1 { margin: 48px 0 16px; font-size: clamp(32px, 6vw, 48px); letter-spacing: -.04em; line-height: 1.1; }
+    p { color: #adbdcb; line-height: 1.7; }
+    h2 { font-size: 20px; margin: 0 0 14px; }
+    section { margin-top: 28px; padding: 24px; border: 1px solid #2a3948; border-radius: 14px; background: #16212c; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 36px; }
+    a { color: #91caff; text-underline-offset: 4px; }
+    .button { padding: 11px 16px; border: 1px solid #42607a; border-radius: 8px; text-decoration: none; }
+    a:hover { color: #d3eaff; }
+    a:focus-visible { outline: 3px solid #93e3ba; outline-offset: 4px; }
+    code { font-family: ui-monospace, monospace; font-size: 13px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #10171f; padding: 16px; border-radius: 8px; line-height: 1.7; }
+    dl { margin: 0; }
+    dt { margin-top: 18px; }
+    dd { margin: 5px 0 0; color: #adbdcb; line-height: 1.6; }
+    footer { margin-top: 28px; color: #8799a9; font-size: 13px; line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><div class="brand">Ariba Shield</div><span class="badge">Management API online</span></header>
+    <h1>Your management API is running.</h1>
+    <p>This container provides account access and APIs for saving website and protection-policy settings. The browser dashboard is still planned.</p>
+    <nav class="actions" aria-label="API checks">
+      <a class="button" href="/health/live">Check API liveness</a>
+      <a class="button" href="/api/v1/setup/status">Check setup status</a>
+    </nav>
+    <section aria-labelledby="setup-heading">
+      <h2 id="setup-heading">First-time setup</h2>
+      <p>Generate a one-time enrollment token from your project directory:</p>
+      <pre><code>docker compose exec -T management-api /ariba -db /data/db/ariba.db -enrollment-token</code></pre>
+      <p>Keep the token private; it expires in ten minutes. Using an API client, obtain a CSRF token from <code>/api/v1/auth/csrf</code>, then enroll through <code>/api/v1/setup/enroll</code>. Enrollment creates the first Admin; sign in through <code>/api/v1/auth/login</code> afterward. Retain cookies and send the configured Origin and CSRF token on mutations.</p>
+      <p>Enrollment closes after the first Admin is created. Existing accounts can use the login API directly.</p>
+    </section>
+    <section aria-labelledby="endpoints-heading">
+      <h2 id="endpoints-heading">Useful endpoints</h2>
+      <dl>
+        <dt><a href="/health/live"><code>GET /health/live</code></a></dt>
+        <dd>Returns 200 while the API responds.</dd>
+        <dt><a href="/health/ready"><code>GET /health/ready</code></a></dt>
+        <dd>Currently returns 503 because live WAF activation is pending.</dd>
+        <dt><a href="/api/v1/setup/status"><code>GET /api/v1/setup/status</code></a></dt>
+        <dd>Reports whether initial enrollment is required.</dd>
+        <dt><code>/api/v1/websites</code> · <code>/api/v1/policies</code></dt>
+        <dd>Authenticated APIs for saving desired configuration.</dd>
+      </dl>
+    </section>
+    <footer>Local development · Configuration changes remain pending until activation is implemented.</footer>
+  </main>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 ## Project status
 
-Ariba Shield WAF is currently a design/documentation project. There is no supported software release or production deployment. The security design is not a certification or guarantee of protection.
+Ariba Shield WAF has an early Go WAF prototype and management API foundation. There is no supported software release or production deployment. The security design is not a certification or guarantee of protection.
 
 ## Reporting a vulnerability
 

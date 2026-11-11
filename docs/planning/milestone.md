@@ -17,6 +17,10 @@
 
 ### Current progress
 
+M2 is also in progress: SQLite migrations, enrollment/authentication/sessions/roles, Admin user management, desired website/policy CRUD, proxy CIDR settings, and transactional generation tracking are implemented. Tests cover migration/persistence, authorization, concurrent updates/domain conflicts, save-time upstream restrictions, session revocation, and account protections. Certificate metadata, scoped exclusions, runtime destination enforcement, and the full M2 exit review remain incomplete; see [the implemented API foundation](../development/api.md).
+
+M4 is **partial**: a Next.js prototype under `frontend/` provides setup/login, account and session management, website/policy/user/proxy-setting editing, and read-only dashboard/event/configuration views from real API responses. Event detail integration, activation controls, certificate and backup UI, full state handling, and browser end-to-end tests remain incomplete; no production mock metrics are claimed.
+
 M1 is **in progress**. A local Coraza + CRS v4 Go-handler prototype and a restricted demo container image provide loopback-only HTTP/HTTPS proxying to a fixed in-process origin. Unit and local-socket/container checks confirm DetectionOnly forwarding, Blocking enforcement, and benign HTTP/HTTPS traffic. A preliminary, non-release microbenchmark is also recorded. The image is prototype-only: production engine selection, Nginx integration, configurable upstreams, persisted events, management UI/API, production certificate/reload behavior, lifecycle recovery tests, comparative engine benchmarking, and the 5,000 requests/sec stability target remain incomplete. See the [WAF engine notes](../development/waf-engine.md) for evidence and limitations.
 
 ## Milestone details

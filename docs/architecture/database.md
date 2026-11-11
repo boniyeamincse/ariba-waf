@@ -1,11 +1,13 @@
 # Proposed Database Design
 
-**Status:** Logical design only; no schema or migrations have been implemented.  
+**Status:** Partial. Schema version 1 implements accounts/sessions, enrollment, CSRF secret, login attempts, and audit entries. Version 2 adds desired policies/websites, normalized domain bindings, proxy settings, and configuration generation. Both transactional migrations live in `internal/management/store.go`; newer unknown schemas are rejected. The remaining entities below are proposed.
 **Store:** SQLite, single instance, local persistent filesystem.
 
 ## 1. Design constraints
 
 Use SQLite with WAL mode, bounded transactions, busy timeout, schema migrations, and serialized writes where needed. Never mount one SQLite database into multiple active replicas. Store large private artifacts (certificates, keys, encrypted backups) in restricted files under `/data`; store opaque references and metadata in the database.
+
+The current foundation uses the pure-Go `modernc.org/sqlite` driver, a single connection per process, immediate write transactions, a 5-second busy timeout, foreign keys, WAL, and `synchronous=FULL`. Migrations use `PRAGMA user_version` and preserve existing account/session data. Database directories must be private (`0700`), and database files use `0600`. Desired definitions are validated typed JSON with versions; website policy references use foreign keys, and enabled domain bindings have a partial unique index. Generation, resource writes, and audit records commit together. Configuration revisions, activation, event storage, and backup remain unimplemented.
 
 All timestamps are UTC. Use opaque IDs, foreign keys, uniqueness constraints, explicit retention, and auditability. Never store plaintext passwords, enrollment tokens, session tokens, or backup passphrases.
 

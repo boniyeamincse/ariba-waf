@@ -1,12 +1,20 @@
 # Frontend Development
 
-**Status:** Proposed design and implementation boundary; dashboard source is not present yet.
+**Status:** Partial implementation. A Next.js dashboard prototype exists in `frontend/` with setup, login, account/session management, and website, policy, user, and proxy-setting editing backed by real API responses.
+
+## 0. Current implementation
+
+- Implemented pages: `/`, `/setup`, `/dashboard`, `/account`, `/events`, `/websites`, `/policies`, `/users`, `/settings`
+- Implemented flows: setup status check, one-time enrollment request, login/logout, session listing/revocation, re-authentication, password change, identity and configuration read views, plus create/edit/delete for websites, policies, users, and proxy CIDR settings where the role permits
+- Read-only views: dashboard overview, events, and configuration status
+- Data source: same-origin `/api/v1` calls to the Go management API
+- Not yet implemented: full event detail API integration, activation/apply workflows, certificates UI, retention/backup UI, and end-to-end browser tests
 
 ## 1. Runtime model
 
 Build the Next.js dashboard as a static export. The final image serves HTML, CSS, JavaScript, and assets through the management listener; Node.js is not a production runtime. Authentication, authorization, validation, persistence, and configuration activation belong to the Go API. Do not rely on Next.js server actions, server sessions, or runtime API routes.
 
-During local development, use the Next.js dev server and proxy same-origin `/api/v1` calls to the loopback Go API. See [local development](local-development.md) and [the API contract](api.md).
+During local development, use the Next.js dev server from the `frontend/` directory and proxy same-origin `/api/v1` calls to the loopback Go API. See [local development](local-development.md) and [the API contract](api.md).
 
 ## 2. Proposed navigation
 

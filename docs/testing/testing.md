@@ -1,6 +1,12 @@
 # Testing Strategy
 
-**Status:** Test plan; no implementation test suite or CI evidence exists yet.
+**Status:** Partial implementation tests exist; release/CI verification remains incomplete.
+
+Run `go test ./...` and `go vet ./...` from the repository root. Existing tests cover health probes, synthetic Coraza/CRS traffic, the local HTTPS demo, and the SQLite management foundation. Management tests exercise enrollment races/retries/expiry, persistence, login/logout, Origin/CSRF checks, input limits, roles, ETags, last-Admin protection, session expiry/revocation, and password changes. Use `go test -race ./...` for concurrency checks. These checks do not establish release-image or production readiness.
+
+Desired-configuration tests cover migration from schema v1, site/policy CRUD and persistence, nested PATCH behavior, IDNA domain conflicts, referenced-policy deletion, generation/audit atomicity, signed pagination, role restrictions, concurrent domain writes, and destination validation with an injected resolver. No real DNS or upstream service is required for these tests. Runtime destination pinning, certificate management, and activation remain unverified.
+
+The local management image has a separate packaging check: build `Dockerfile.api` as `ariba-shield-management-api:local` (add `--network=host` when the Docker build DNS cannot resolve `proxy.golang.org`), then run `python3 tests/integration/management_container.py`. It creates an isolated Compose project/volume and verifies health, runtime restrictions, bootstrap/login and persistence through container replacement. This is independent of the integrated release-image test plan below; see [the container guide](../operations/management-container.md).
 
 ## 1. Test layers
 
@@ -42,4 +48,4 @@ A release candidate must pass the agreed unit, contract, integration, security, 
 
 ## 6. Pending test infrastructure
 
-Choose Go and frontend test frameworks, container orchestration for CI, supported architectures, static/security scanners, and performance environment. Do not write “all tests pass” before test commands and evidence exist.
+Go tests currently use the standard library. Choose frontend test frameworks, container orchestration for CI, supported architectures, static/security scanners, and performance environment. Do not write “all tests pass” before test commands and evidence exist.
